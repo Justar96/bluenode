@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -37,7 +37,7 @@ def test_ast_grep_no_matches(mock_run):
 
 @patch("subprocess.run")
 def test_ast_grep_parse_error(mock_run):
-    proc = Mock(returncode=0, stdout="not-json\n{\"file\": \"x\"}", stderr="")
+    proc = Mock(returncode=0, stdout='not-json\n{"file": "x"}', stderr="")
     mock_run.return_value = proc
     ok, findings, _, _, _ = run_ast_grep("x", "python")
     assert ok and isinstance(findings, list)
@@ -125,10 +125,7 @@ def test_ast_grep_multiline_matches(mock_run):
     matches = [
         {
             "file": "src/multi.py",
-            "range": {
-                "start": {"line": 5, "column": 1},
-                "end": {"line": 8, "column": 10}
-            },
+            "range": {"start": {"line": 5, "column": 1}, "end": {"line": 8, "column": 10}},
             "text": "def foo():\n    pass",
         }
     ]
@@ -220,18 +217,20 @@ def test_ripgrep_case_sensitive_toggle(mock_run):
 @patch("subprocess.run")
 def test_ripgrep_multiple_submatches(mock_run):
     """Verify run_ripgrep() parses multiple submatches into multiple Finding entries."""
-    stream = json.dumps({
-        "type": "match",
-        "data": {
-            "path": {"text": "app.js"},
-            "lines": {"text": "const x = 1, y = 2;"},
-            "line_number": 10,
-            "submatches": [
-                {"start": 6, "end": 7, "match": {"text": "x"}},
-                {"start": 13, "end": 14, "match": {"text": "y"}},
-            ],
-        },
-    })
+    stream = json.dumps(
+        {
+            "type": "match",
+            "data": {
+                "path": {"text": "app.js"},
+                "lines": {"text": "const x = 1, y = 2;"},
+                "line_number": 10,
+                "submatches": [
+                    {"start": 6, "end": 7, "match": {"text": "x"}},
+                    {"start": 13, "end": 14, "match": {"text": "y"}},
+                ],
+            },
+        }
+    )
     proc = Mock(returncode=0, stdout=stream, stderr="")
     mock_run.return_value = proc
 

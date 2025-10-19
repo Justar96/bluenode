@@ -8,14 +8,13 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 
 @dataclass(eq=True, frozen=True)
 class FixtureCorpus:
     name: str
     description: str
-    files: Dict[str, str]  # relative path -> content
+    files: dict[str, str]  # relative path -> content
 
 
 def _react_hooks() -> FixtureCorpus:
@@ -28,20 +27,17 @@ function App() {
   return <div>{n}</div>;
 }
 export default App;
-""".strip()
-        ,
+""".strip(),
         "src/utils.js": """
 // Utilities
 // TODO: useEffect cleanup is needed
 export function inc(x) { return x + 1; }
-""".strip()
-        ,
+""".strip(),
         "src/legacy.js": """
 // Old-style class component
 class Legacy { method() { return 1; } }
 export { Legacy };
-""".strip()
-        ,
+""".strip(),
     }
     return FixtureCorpus(
         name="react_hooks",
@@ -57,18 +53,15 @@ export async function fetchUser(id: string) {
   const rows = await DB.query(`select * from users where id = ${id}`);
   return rows[0];
 }
-""".strip()
-        ,
+""".strip(),
         "src/sync.ts": """
 // this file mentions async but is not actually async
 export function add(a: number, b: number) { return a + b; }
-""".strip()
-        ,
+""".strip(),
         "types/index.d.ts": """
 declare const DB: { query(sql: string): Promise<any[]> };
 export { DB };
-""".strip()
-        ,
+""".strip(),
     }
     return FixtureCorpus(
         name="typescript_async",
@@ -86,21 +79,18 @@ def café():
 
 def cafe():
     return 2
-""".strip()
-        ,
+""".strip(),
         "utils.py": """
 def deco(f):
     def w(*a, **k):
         return f(*a, **k)
     return w
-""".strip()
-        ,
+""".strip(),
         "test.py": """
 def test_something():
     s = "TODO: nothing"
     assert True
-""".strip()
-        ,
+""".strip(),
     }
     return FixtureCorpus(
         name="python_unicode",
@@ -119,20 +109,17 @@ import "fmt"
 func main() {
     fmt.Printf("hello %d", 1)
 }
-""".strip()
-        ,
+""".strip(),
         "logger.go": """
 package main
 
 func Logf(s string) {}
-""".strip()
-        ,
+""".strip(),
         "utils.go": """
 package main
 
 func Add(a, b int) int { return a + b }
-""".strip()
-        ,
+""".strip(),
     }
     return FixtureCorpus(
         name="go_printf",
@@ -150,16 +137,13 @@ int main() {
     printf("hello %d", 1);
     return 0;
 }
-""".strip()
-        ,
+""".strip(),
         "utils.c": """
 int add(int a, int b) { return a + b; }
-""".strip()
-        ,
+""".strip(),
         "logger.h": """
 void logf(const char* s);
-""".strip()
-        ,
+""".strip(),
     }
     return FixtureCorpus(
         name="c_printf",
@@ -175,19 +159,16 @@ def _rust_macros() -> FixtureCorpus:
 name = "sample"
 version = "0.1.0"
 edition = "2021"
-""".strip()
-        ,
+""".strip(),
         "src/main.rs": """
 fn main() {
     println!("hello {}", 1);
 }
-""".strip()
-        ,
+""".strip(),
         "src/lib.rs": """
 #[allow(dead_code)]
 pub fn add(a: i32, b: i32) -> i32 { a + b }
-""".strip()
-        ,
+""".strip(),
     }
     return FixtureCorpus(
         name="rust_macros",
@@ -203,8 +184,7 @@ def _mixed_comments() -> FixtureCorpus:
         "comments.js": """
 // async should not be matched here
 function real() { return 1 }
-""".strip()
-        ,
+""".strip(),
     }
     return FixtureCorpus(
         name="mixed_comments",
@@ -213,7 +193,42 @@ function real() { return 1 }
     )
 
 
-FIXTURES: List[FixtureCorpus] = [
+def _c_go_mixed() -> FixtureCorpus:
+    files = {
+        "main.c": """
+#include <stdio.h>
+
+int main() {
+    printf("hello %d", 1);
+    return 0;
+}
+""".strip(),
+        "utils.c": """
+int add(int a, int b) { return a + b; }
+""".strip(),
+        "main.go": """
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Printf("hello %d", 1)
+}
+""".strip(),
+        "logger.go": """
+package main
+
+func Logf(s string) {}
+""".strip(),
+    }
+    return FixtureCorpus(
+        name="c_go_mixed",
+        description="Mixed C and Go code to test type filter disambiguation",
+        files=files,
+    )
+
+
+FIXTURES: list[FixtureCorpus] = [
     _react_hooks(),
     _typescript_async(),
     _python_unicode(),
@@ -221,6 +236,7 @@ FIXTURES: List[FixtureCorpus] = [
     _c_printf(),
     _rust_macros(),
     _mixed_comments(),
+    _c_go_mixed(),
 ]
 
 DEFAULT_FIXTURES_DIR = "corpora_fixtures"
@@ -236,8 +252,8 @@ def materialize_corpus(corpus: FixtureCorpus, base_path: str | Path) -> Path:
     return root
 
 
-def materialize_all_fixtures(base_path: str | Path) -> Dict[str, Path]:
-    out: Dict[str, Path] = {}
+def materialize_all_fixtures(base_path: str | Path) -> dict[str, Path]:
+    out: dict[str, Path] = {}
     for c in FIXTURES:
         out[c.name] = materialize_corpus(c, base_path)
     return out

@@ -11,23 +11,23 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Tuple
 
 
 @dataclass(eq=True, frozen=True)
 class Finding:
     path: str
     line: int
-    column: Optional[int] = None
-    end_line: Optional[int] = None
-    end_column: Optional[int] = None
-    text: Optional[str] = None
-    context_before: Optional[List[str]] = None
-    context_after: Optional[List[str]] = None
+    column: int | None = None
+    end_line: int | None = None
+    end_column: int | None = None
+    text: str | None = None
+    context_before: list[str] | None = None
+    context_after: list[str] | None = None
 
 
-def _safe_json_loads_lines(s: str) -> List[dict]:
+def _safe_json_loads_lines(s: str) -> list[dict]:
     out = []
     for line in s.splitlines():
         line = line.strip()
@@ -43,10 +43,10 @@ def _safe_json_loads_lines(s: str) -> List[dict]:
 def run_ast_grep(
     pattern: str,
     language: str,
-    paths: Optional[Iterable[str]] = None,
-    cwd: Optional[str] = None,
+    paths: Iterable[str] | None = None,
+    cwd: str | None = None,
     timeout: int = 30,
-) -> Tuple[bool, List[Finding], str, str, int]:
+) -> tuple[bool, list[Finding], str, str, int]:
     cmd = ["ast-grep", "-p", pattern, "-l", language, "--json"]
     if paths:
         for p in paths:
@@ -65,12 +65,14 @@ def run_ast_grep(
         return False, [], "", "ast-grep timed out", 124
 
     stdout, stderr, rc = proc.stdout, proc.stderr, proc.returncode
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     ok = rc in (0, 1)
 
     # ast-grep may output a JSON array or line-delimited JSON
     try:
-        data = json.loads(stdout) if stdout.strip().startswith("[") else _safe_json_loads_lines(stdout)
+        data = (
+            json.loads(stdout) if stdout.strip().startswith("[") else _safe_json_loads_lines(stdout)
+        )
     except json.JSONDecodeError:
         data = _safe_json_loads_lines(stdout)
 
@@ -101,14 +103,14 @@ def run_ast_grep(
 
 def run_ripgrep(
     pattern: str,
-    file_types: Optional[Iterable[str]] = None,
-    paths: Optional[Iterable[str]] = None,
+    file_types: Iterable[str] | None = None,
+    paths: Iterable[str] | None = None,
     case_sensitive: bool = False,
     pcre2: bool = False,
-    context_lines: Optional[int] = None,
-    cwd: Optional[str] = None,
+    context_lines: int | None = None,
+    cwd: str | None = None,
     timeout: int = 30,
-) -> Tuple[bool, List[Finding], str, str, int]:
+) -> tuple[bool, list[Finding], str, str, int]:
     cmd = ["rg", pattern, "--json"]
     if pcre2:
         cmd.append("-P")
@@ -136,7 +138,7 @@ def run_ripgrep(
 
     stdout, stderr, rc = proc.stdout, proc.stderr, proc.returncode
     ok = rc in (0, 1)
-    findings: List[Finding] = []
+    findings: list[Finding] = []
 
     # ripgrep --json outputs JSONL stream
     for obj in _safe_json_loads_lines(stdout):
@@ -180,7 +182,7 @@ _LOOKAROUND = re.compile(r"\(\?<?[=!]")
 _BACKREF = re.compile(r"\\[1-9]")
 
 
-def validate_pcre2_requirement(pattern: str) -> Tuple[bool, str]:
+def validate_pcre2_requirement(pattern: str) -> tuple[bool, str]:
     """Return whether PCRE2 is required for the pattern and why."""
     if _LOOKAROUND.search(pattern):
         return True, "pattern contains lookaround"

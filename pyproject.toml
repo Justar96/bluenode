@@ -6,7 +6,23 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "CodeSearch Gym Authors", email = "devnull@example.com" }]
-keywords = ["function-calling", "tool-use", "code-search", "ast-grep", "ripgrep", "rl", "grpo", "blueprints", "fixtures", "adversarial"]
+keywords = [
+  "function-calling",
+  "tool-use",
+  "code-search",
+  "ast-grep",
+  "ripgrep",
+  "rl",
+  "grpo",
+  "blueprints",
+  "fixtures",
+  "adversarial",
+  "vllm",
+  "structured-outputs",
+  "guided-decoding",
+  "qwen",
+  "glm",
+]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
@@ -30,8 +46,25 @@ dev = [
   "mypy>=1.0.0",
   "jsonschema>=4.0.0",
 ]
-vllm = ["vllm>=0.10.0"]
-all = ["codesearch-gym[dev, vllm]"]
+vllm = [
+  "vllm>=0.10.0",
+  "transformers>=4.46.1",
+]
+generation = [
+  "vllm>=0.10.0",
+  "transformers>=4.46.1",
+]
+all = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "pytest-mock>=3.10.0",
+  "black>=23.0.0",
+  "ruff>=0.1.0",
+  "mypy>=1.0.0",
+  "jsonschema>=4.0.0",
+  "vllm>=0.10.0",
+  "transformers>=4.46.1",
+]
 
 [build-system]
 requires = ["setuptools>=65.0.0", "wheel"]

@@ -1,14 +1,12 @@
 from pathlib import Path
 
-import pytest
-
 from codesearch_gym.fixtures import (
     FIXTURES,
     FixtureCorpus,
-    materialize_corpus,
-    materialize_all_fixtures,
     cleanup_fixtures,
     get_corpus_path,
+    materialize_all_fixtures,
+    materialize_corpus,
 )
 
 

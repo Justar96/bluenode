@@ -1,11 +1,11 @@
-from codesearch_gym.runner import Finding
 from codesearch_gym.grader import (
     compute_file_iou,
-    compute_span_f1,
-    grade_results,
     compute_reward_signal,
+    compute_span_f1,
     format_grade_report,
+    grade_results,
 )
+from codesearch_gym.runner import Finding
 
 
 def _mk(path: str, line: int, end_line=None):
@@ -44,7 +44,9 @@ def test_grade_results_and_reward():
     assert "file_iou" in res and "span_metrics" in res
     tool = {"name": "ripgrep_search", "arguments": {"pattern": "x", "pcre2": False}}
     reward = compute_reward_signal(p, g, tool)
-    assert set(["R_parse", "R_find", "R_scope", "R_effort", "R_pcre2_rule", "R_errors", "total"]).issubset(reward.keys())
+    assert set(
+        ["R_parse", "R_find", "R_scope", "R_effort", "R_pcre2_rule", "R_errors", "total"]
+    ).issubset(reward.keys())
 
 
 def test_format_grade_report():

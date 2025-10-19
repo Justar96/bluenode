@@ -6,14 +6,14 @@ import pytest
 from codesearch_gym.blueprints import (
     Blueprint,
     from_dict,
+    load_blueprints,
+    save_blueprints,
     to_dict,
     to_tool_call,
     validate_blueprint,
-    save_blueprints,
-    load_blueprints,
 )
 from codesearch_gym.runner import Finding
-from codesearch_gym.schemas import TOOL_CALL_SCHEMA, validate_tool_call
+from codesearch_gym.schemas import validate_tool_call
 
 
 @pytest.fixture
@@ -84,7 +84,9 @@ def test_validate_blueprint_fails_on_empty_gt(sample_blueprint_ripgrep):
     assert not ok and "ground_truth" in str(err)
 
 
-def test_save_and_load_blueprints(tmp_path: Path, sample_blueprint_ast_grep, sample_blueprint_ripgrep):
+def test_save_and_load_blueprints(
+    tmp_path: Path, sample_blueprint_ast_grep, sample_blueprint_ripgrep
+):
     path = tmp_path / "bps.json"
     save_blueprints([sample_blueprint_ast_grep, sample_blueprint_ripgrep], path)
     assert path.exists()

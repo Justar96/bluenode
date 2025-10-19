@@ -7,7 +7,7 @@ References:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 try:
     import jsonschema  # optional dependency
@@ -15,7 +15,7 @@ except Exception:  # pragma: no cover - validation falls back to minimal checks
     jsonschema = None  # type: ignore
 
 
-TOOL_CALL_SCHEMA: Dict[str, Any] = {
+TOOL_CALL_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "name": {
@@ -76,7 +76,7 @@ TOOL_CALL_SCHEMA: Dict[str, Any] = {
 }
 
 
-COMPOSITE_PLAN_SCHEMA: Dict[str, Any] = {
+COMPOSITE_PLAN_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "steps": {
@@ -91,7 +91,7 @@ COMPOSITE_PLAN_SCHEMA: Dict[str, Any] = {
 }
 
 
-def validate_tool_call(call_dict: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+def validate_tool_call(call_dict: dict[str, Any]) -> tuple[bool, str | None]:
     """Validate a tool call dictionary against TOOL_CALL_SCHEMA.
 
     Returns (is_valid, error_message). If jsonschema is unavailable, performs minimal checks.
@@ -133,7 +133,8 @@ def validate_tool_call(call_dict: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
                     return False, "pattern must be non-empty string"
                 file_types = args.get("file_types")
                 if file_types is not None and (
-                    not isinstance(file_types, list) or not all(isinstance(x, str) for x in file_types)
+                    not isinstance(file_types, list)
+                    or not all(isinstance(x, str) for x in file_types)
                 ):
                     return False, "file_types must be list of strings"
                 paths = args.get("paths")
@@ -177,7 +178,7 @@ def validate_tool_call(call_dict: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
             return False, str(e)
 
 
-def get_tool_schema(tool_name: str) -> Optional[Dict[str, Any]]:
+def get_tool_schema(tool_name: str) -> dict[str, Any] | None:
     """Return the specific arguments schema for the given tool name."""
     if tool_name == "ast_grep_search":
         return TOOL_CALL_SCHEMA["properties"]["arguments"]["oneOf"][0]  # type: ignore[index]

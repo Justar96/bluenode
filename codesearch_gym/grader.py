@@ -7,14 +7,14 @@ References:
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Tuple, Union
+from collections.abc import Iterable
 
 from .runner import Finding, validate_pcre2_requirement
 from .schemas import validate_tool_call
 
 
-def _spans(findings: Iterable[Finding]) -> List[Tuple[str, int, int]]:
-    spans: List[Tuple[str, int, int]] = []
+def _spans(findings: Iterable[Finding]) -> list[tuple[str, int, int]]:
+    spans: list[tuple[str, int, int]] = []
     for f in findings:
         start = int(f.line)
         end = int(f.end_line if f.end_line is not None else f.line)
@@ -24,7 +24,9 @@ def _spans(findings: Iterable[Finding]) -> List[Tuple[str, int, int]]:
     return spans
 
 
-def compute_file_iou(predicted_findings: Iterable[Finding], ground_truth_findings: Iterable[Finding]) -> float:
+def compute_file_iou(
+    predicted_findings: Iterable[Finding], ground_truth_findings: Iterable[Finding]
+) -> float:
     p_files = {f.path for f in predicted_findings}
     g_files = {f.path for f in ground_truth_findings}
     if not p_files and not g_files:
@@ -36,7 +38,7 @@ def compute_file_iou(predicted_findings: Iterable[Finding], ground_truth_finding
     return len(inter) / len(union)
 
 
-def _overlap(a: Tuple[int, int], b: Tuple[int, int], tol: int) -> bool:
+def _overlap(a: tuple[int, int], b: tuple[int, int], tol: int) -> bool:
     a0, a1 = a
     b0, b1 = b
     return not (a1 < b0 - tol or b1 < a0 - tol)
@@ -46,21 +48,19 @@ def compute_span_f1(
     predicted_findings: Iterable[Finding],
     ground_truth_findings: Iterable[Finding],
     tolerance: int = 0,
-) -> Dict[str, Union[float, int]]:
+) -> dict[str, float | int]:
     p_spans = _spans(predicted_findings)
     g_spans = _spans(ground_truth_findings)
 
     tp = 0
     matched_g = set()
     for i, (pf, ps, pe) in enumerate(p_spans):
-        found = False
         for j, (gf, gs, ge) in enumerate(g_spans):
             if j in matched_g:
                 continue
             if pf == gf and _overlap((ps, pe), (gs, ge), tolerance):
                 tp += 1
                 matched_g.add(j)
-                found = True
                 break
         # continue; FP counted after loop
     fp = max(0, len(p_spans) - tp)
@@ -76,7 +76,7 @@ def grade_results(
     predicted_findings: Iterable[Finding],
     ground_truth_findings: Iterable[Finding],
     tolerance: int = 0,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     p_list = list(predicted_findings)
     g_list = list(ground_truth_findings)
     file_iou = compute_file_iou(p_list, g_list)
@@ -102,7 +102,7 @@ def compute_reward_signal(
     delta: float = 0.05,
     zeta: float = 0.5,
     errors: float = 0.0,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     results = grade_results(predicted_findings, ground_truth_findings, tolerance=tolerance)
     span = results["span_metrics"]  # type: ignore[index]
     file_iou = float(results["file_iou"])  # type: ignore[index]
@@ -128,7 +128,14 @@ def compute_reward_signal(
 
     r_effort = 0.01 * fp
 
-    total = alpha * r_parse + beta * f1 + gamma * file_iou - delta * r_effort - zeta * r_pcre2_penalty - zeta * r_errors
+    total = (
+        alpha * r_parse
+        + beta * f1
+        + gamma * file_iou
+        - delta * r_effort
+        - zeta * r_pcre2_penalty
+        - zeta * r_errors
+    )
     return {
         "R_parse": r_parse,
         "R_find": f1,
@@ -140,7 +147,7 @@ def compute_reward_signal(
     }
 
 
-def format_grade_report(grade_dict: Dict[str, object]) -> str:
+def format_grade_report(grade_dict: dict[str, object]) -> str:
     span = grade_dict.get("span_metrics", {})  # type: ignore[assignment]
     return (
         f"File IoU: {grade_dict.get('file_iou')}\n"

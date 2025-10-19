@@ -11,12 +11,13 @@ References:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any
 
 from .runner import Finding
-from .schemas import TOOL_CALL_SCHEMA, validate_tool_call
+from .schemas import validate_tool_call
 
 
 @dataclass(eq=True, frozen=True)
@@ -24,17 +25,17 @@ class Blueprint:
     id: str
     intent: str
     tool: str  # "ast_grep_search" | "ripgrep_search"
-    arguments: Dict[str, Any]
+    arguments: dict[str, Any]
     corpus: str
-    ground_truth: List[Finding]
-    description: Optional[str] = None
+    ground_truth: list[Finding]
+    description: str | None = None
 
 
-def to_tool_call(bp: Blueprint) -> Dict[str, Any]:
+def to_tool_call(bp: Blueprint) -> dict[str, Any]:
     return {"name": bp.tool, "arguments": bp.arguments}
 
 
-def validate_blueprint(bp: Blueprint) -> Tuple[bool, Optional[str]]:
+def validate_blueprint(bp: Blueprint) -> tuple[bool, str | None]:
     if bp.tool not in ("ast_grep_search", "ripgrep_search"):
         return False, "unknown tool name"
     if not bp.ground_truth:
@@ -46,7 +47,7 @@ def validate_blueprint(bp: Blueprint) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _finding_from_dict(d: Dict[str, Any]) -> Finding:
+def _finding_from_dict(d: dict[str, Any]) -> Finding:
     return Finding(
         path=str(d["path"]),
         line=int(d["line"]),
@@ -57,7 +58,7 @@ def _finding_from_dict(d: Dict[str, Any]) -> Finding:
     )
 
 
-def _finding_to_dict(f: Finding) -> Dict[str, Any]:
+def _finding_to_dict(f: Finding) -> dict[str, Any]:
     return {
         "path": f.path,
         "line": f.line,
@@ -68,7 +69,7 @@ def _finding_to_dict(f: Finding) -> Dict[str, Any]:
     }
 
 
-def from_dict(data: Dict[str, Any]) -> Blueprint:
+def from_dict(data: dict[str, Any]) -> Blueprint:
     gt_raw = data.get("ground_truth", [])
     gt = [_finding_from_dict(x) for x in gt_raw]
     return Blueprint(
@@ -82,7 +83,7 @@ def from_dict(data: Dict[str, Any]) -> Blueprint:
     )
 
 
-def to_dict(bp: Blueprint) -> Dict[str, Any]:
+def to_dict(bp: Blueprint) -> dict[str, Any]:
     return {
         "id": bp.id,
         "intent": bp.intent,
@@ -94,12 +95,12 @@ def to_dict(bp: Blueprint) -> Dict[str, Any]:
     }
 
 
-def load_blueprints(path: str | Path) -> List[Blueprint]:
+def load_blueprints(path: str | Path) -> list[Blueprint]:
     p = Path(path)
     if not p.exists():
         return []
     text = p.read_text(encoding="utf-8")
-    bps: List[Blueprint] = []
+    bps: list[Blueprint] = []
     if p.suffix.lower() == ".jsonl":
         for line in text.splitlines():
             line = line.strip()

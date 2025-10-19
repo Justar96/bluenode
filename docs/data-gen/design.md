@@ -66,7 +66,23 @@ print(generate_tool_call(
 ))
 ```
 
-Under the hood it uses **`StructuredOutputsParams(json=TOOL_CALL_SCHEMA)` + `SamplingParams(structured_outputs=...)`**—the supported way to force JSON‑schema‑true outputs in modern vLLM. ([GitHub][3])
+Under the hood it uses **`GuidedDecodingParams(json=TOOL_CALL_SCHEMA)` + `SamplingParams(guided_decoding=...)`**—the supported way to force JSON‑schema‑true outputs in modern vLLM.
+
+```python
+from vllm import LLM, SamplingParams
+from vllm.sampling_params import GuidedDecodingParams
+from codesearch_gym.schemas import TOOL_CALL_SCHEMA
+
+llm = LLM(model="Qwen/Qwen2.5-Coder-32B-Instruct", tensor_parallel_size=2)
+guided = GuidedDecodingParams(json=TOOL_CALL_SCHEMA)
+sp = SamplingParams(temperature=0.6, max_tokens=256, guided_decoding=guided)
+prompt = (
+    "<system>Use ast-grep for structure; ripgrep for text.</system>\n"
+    "<user>Find async functions that call DB.query in JS</user>\n"
+    "<assistant>"
+)
+out = llm.generate([prompt], sampling_params=sp)[0].outputs[0].text
+```
 
 ---
 
@@ -117,7 +133,7 @@ The schema is consumed directly by vLLM’s **guided JSON** (xgrammar/guidance b
 
 ## Where this plugs into your pipeline
 
-1. **Replace free‑form JSON** in your generator with **schema‑guided decoding**. The included `structured_gen.py` shows exactly how to wire **vLLM → `StructuredOutputsParams(json=...)`** to force conformance. ([GitHub][3])
+1. **Replace free‑form JSON** in your generator with **schema‑guided decoding**. The included `structured_gen.py` shows exactly how to wire **vLLM → `GuidedDecodingParams(json=...)`** to force conformance. ([GitHub][3])
 
 2. **Blueprint → Sim → Verify**:
 
@@ -148,20 +164,21 @@ The schema is consumed directly by vLLM’s **guided JSON** (xgrammar/guidance b
 
 ```python
 from vllm import LLM, SamplingParams
-from vllm.sampling_params import StructuredOutputsParams
+from vllm.sampling_params import GuidedDecodingParams
 from codesearch_gym.schemas import TOOL_CALL_SCHEMA
 
 llm = LLM(model="Qwen/Qwen2.5-Coder-32B-Instruct")
+guided = GuidedDecodingParams(json=TOOL_CALL_SCHEMA)
 sp = SamplingParams(
     temperature=0.6,
     max_tokens=256,
-    structured_outputs=StructuredOutputsParams(json=TOOL_CALL_SCHEMA),
+    guided_decoding=guided,
 )
 prompt = "<system>Use ast-grep for structure; ripgrep for text.</system>\n<user>Find async functions that call DB.query in JS</user>\n<assistant>"
 out = llm.generate([prompt], sampling_params=sp)[0].outputs[0].text
 ```
 
-That usage pattern matches the official examples for **StructuredOutputsParams**. ([GitHub][3])
+That usage pattern matches the official examples for vLLM guided JSON using GuidedDecodingParams.
 
 **ripgrep JSON lines you’re parsing**
 `rg --json` emits JSONL messages like `type=match` with `path`, `line_number`, and `submatches`; the runner extracts those safely. ([DeepWiki][5])

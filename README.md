@@ -18,6 +18,39 @@ An execution-grounded gym for training function-calling models on ast-grep and r
 - **Adversarial seeds**: 7+ hand-crafted seeds covering AST vs text, PCRE2, type filters, unicode, and comment traps
 - **Seed verification utility**: Validate seeds with span-F1 ≥ 0.95 and summary report
 
+### Structured Generation (vLLM Guided JSON)
+
+Use vLLM's guided decoding to generate schema-true tool calls from natural language:
+
+```python
+from codesearch_gym import (
+  generate_tool_call,
+  create_vllm_generator,
+)
+
+# Offline (in-process vLLM)
+llm = create_vllm_generator(
+  model_name="Qwen/Qwen2.5-Coder-32B-Instruct",
+  tensor_parallel_size=2,
+)
+
+tool_call, raw, valid, err = generate_tool_call(
+  intent="Find all async functions that call DB.query in TypeScript files",
+  model=llm,
+  temperature=0.6,
+  mode="offline",
+)
+
+# Online (OpenAI-compatible server)
+# from openai import OpenAI
+# client = OpenAI(base_url="http://localhost:8000/v1", api_key="dummy")
+# tool_call, raw, valid, err = generate_tool_call(
+#   intent="Find TODO comments in Python",
+#   mode="online",
+#   client=client,
+# )
+```
+
 ## Installation
 
 ### Core Package
@@ -34,6 +67,9 @@ pip install -e ".[dev]"
 
 # Install with vLLM support
 pip install -e ".[vllm]"
+
+# Or explicitly for generation
+pip install -e ".[generation]"
 ```
 
 ### External Tool Dependencies

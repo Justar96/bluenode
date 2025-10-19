@@ -1,10 +1,8 @@
 import re
 
-import pytest
-
+from codesearch_gym.blueprints import validate_blueprint
+from codesearch_gym.runner import Finding, validate_pcre2_requirement
 from codesearch_gym.seeds_adversarial import ADVERSARIAL_SEEDS, get_seed_by_id
-from codesearch_gym.blueprints import validate_blueprint, to_tool_call
-from codesearch_gym.runner import validate_pcre2_requirement, Finding
 
 
 def test_adversarial_seeds_defined():
