@@ -1,0 +1,67 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.sh text eol=lf
+
+# Documentation
+*.markdown text eol=lf
+*.rst text eol=lf
+
+# Scripts
+*.bash text eol=lf
+*.fish text eol=lf
+*.zsh text eol=lf
+
+# Configuration files
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+
+# Declare files that will always have CRLF line endings on checkout (if needed)
+*.bat text eol=crlf
+
+# Denote binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.pyc binary
+*.pyo binary
+*.so binary
+*.dll binary
+*.exe binary
+
+# Python-specific
+*.pickle binary
+*.pkl binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Archive files
+*.7z binary
+*.gz binary
+*.jar binary
+*.rar binary
+*.tar binary
+*.zip binary
+
+# Linguist overrides for better language detection
+*.md linguist-detectable
+*.py linguist-detectable
+docs/** linguist-documentation
+tests/** linguist-vendored=false
