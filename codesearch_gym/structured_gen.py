@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from .runner import validate_pcre2_requirement
@@ -195,7 +196,7 @@ def validate_and_repair_tool_call(
 
     repaired["arguments"] = args
     valid, err = validate_tool_call(repaired)
-    return repaired, (len(notes) > 0 and valid), ([] if err is None else [err]) + notes
+    return repaired, (len(notes) > 0 and valid), notes
 
 
 def generate_tool_call(
@@ -269,6 +270,10 @@ def generate_tool_call(
     # online mode
     if client is None:
         return None, "", False, "client is required for online mode"
+    # Validate model is non-empty
+    model_str = _coerce_model(model)
+    if not model_str:
+        return None, "", False, "model is required for online mode"
     # OpenAI-compatible API
     messages = [
         {"role": "system", "content": system_prompt or "You are a code search expert."},
@@ -276,7 +281,7 @@ def generate_tool_call(
     ]
     try:
         resp = client.chat.completions.create(  # type: ignore[attr-defined]
-            model=_coerce_model(model) or "",
+            model=model_str,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -308,10 +313,11 @@ def generate_tool_calls_batch(
     client: Any | None = None,
     system_prompt: str | None = None,
     batch_size: int | None = None,
+    concurrency: int = 1,
 ) -> list[tuple[dict[str, Any] | None, str, bool, str | None]]:
     """Batch generation helper. For offline vLLM, uses a single llm.generate call.
 
-    Online mode loops sequentially (most OpenAI-compatible servers don't support batch in one call).
+    Online mode supports concurrent processing via concurrency parameter (default 1 for sequential).
     """
     results: list[tuple[dict[str, Any] | None, str, bool, str | None]] = []
     if not intents:
@@ -340,19 +346,8 @@ def generate_tool_calls_batch(
         if llm is None:
             default_name = RECOMMENDED_MODELS["qwen2.5-coder-32b"]["name"]
             if LLM is None:
-                return [
-                    generate_tool_call(
-                        i,
-                        model=llm,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        top_p=top_p,
-                        mode=mode,
-                        client=client,
-                        system_prompt=system_prompt,
-                    )
-                    for i in intents
-                ]
+                # Return vLLM not installed error for each intent
+                return [(None, "", False, "vLLM not installed") for _ in intents]
             llm = create_vllm_generator(default_name)
 
         prompts = [
@@ -370,31 +365,82 @@ def generate_tool_calls_batch(
                 "top_p": top_p,
                 "guided_decoding": {"json": TOOL_CALL_SCHEMA},
             }
-        try:
-            outs = llm.generate(prompts, sampling_params=sp)  # type: ignore[attr-defined]
-        except Exception as e:  # pragma: no cover
-            return [(None, "", False, f"generation error: {e}") for _ in intents]
 
-        for out in outs:
+        # Implement batching when batch_size is provided
+        if batch_size is None:
+            # Process all prompts in one call
             try:
-                raw = out.outputs[0].text  # type: ignore[index]
-            except Exception:
-                raw = getattr(out, "text", "")
-            obj, valid, err = _parse_and_validate(raw)
-            if isinstance(obj, dict):
-                obj2, repaired, _ = validate_and_repair_tool_call(obj)
-                valid2, err2 = validate_tool_call(obj2)
-                if valid2 and (repaired or obj2 != obj or not valid):
-                    results.append((obj2, raw, True, None))
+                outs = llm.generate(prompts, sampling_params=sp)  # type: ignore[attr-defined]
+            except Exception as e:  # pragma: no cover
+                return [(None, "", False, f"generation error: {e}") for _ in intents]
+
+            for out in outs:
+                try:
+                    raw = out.outputs[0].text  # type: ignore[index]
+                except Exception:
+                    raw = getattr(out, "text", "")
+                obj, valid, err = _parse_and_validate(raw)
+                if isinstance(obj, dict):
+                    obj2, repaired, _ = validate_and_repair_tool_call(obj)
+                    valid2, err2 = validate_tool_call(obj2)
+                    if valid2 and (repaired or obj2 != obj or not valid):
+                        results.append((obj2, raw, True, None))
+                        continue
+                results.append((obj, raw, valid, err))
+        else:
+            # Process in chunks of batch_size
+            total = len(prompts)
+            for start_idx in range(0, total, batch_size):
+                end_idx = min(start_idx + batch_size, total)
+                chunk_prompts = prompts[start_idx:end_idx]
+                try:
+                    chunk_outs = llm.generate(chunk_prompts, sampling_params=sp)  # type: ignore[attr-defined]
+                except Exception as e:  # pragma: no cover
+                    # Add error results for this chunk
+                    results.extend([(None, "", False, f"generation error: {e}") for _ in chunk_prompts])
                     continue
-            results.append((obj, raw, valid, err))
+
+                for out in chunk_outs:
+                    try:
+                        raw = out.outputs[0].text  # type: ignore[index]
+                    except Exception:
+                        raw = getattr(out, "text", "")
+                    obj, valid, err = _parse_and_validate(raw)
+                    if isinstance(obj, dict):
+                        obj2, repaired, _ = validate_and_repair_tool_call(obj)
+                        valid2, err2 = validate_tool_call(obj2)
+                        if valid2 and (repaired or obj2 != obj or not valid):
+                            results.append((obj2, raw, True, None))
+                            continue
+                    results.append((obj, raw, valid, err))
+
+                # Progress tracking
+                print(f"Processed {end_idx}/{total} intents")
+
         return results
 
-    # online mode sequential
-    for it in intents:
-        results.append(
-            generate_tool_call(
-                intent=it,
+    # online mode with optional concurrency
+    if concurrency == 1:
+        # Sequential processing (no overhead)
+        for it in intents:
+            results.append(
+                generate_tool_call(
+                    intent=it,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=top_p,
+                    mode=mode,
+                    client=client,
+                    system_prompt=system_prompt,
+                )
+            )
+    else:
+        # Concurrent processing with ThreadPoolExecutor
+        def _process_intent(idx_and_intent: tuple[int, str]) -> tuple[int, tuple[dict[str, Any] | None, str, bool, str | None]]:
+            idx, intent = idx_and_intent
+            result = generate_tool_call(
+                intent=intent,
                 model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -403,5 +449,12 @@ def generate_tool_calls_batch(
                 client=client,
                 system_prompt=system_prompt,
             )
-        )
+            return idx, result
+
+        with ThreadPoolExecutor(max_workers=concurrency) as executor:
+            indexed_intents = list(enumerate(intents))
+            indexed_results = list(executor.map(_process_intent, indexed_intents))
+            # Sort by index to maintain order
+            indexed_results.sort(key=lambda x: x[0])
+            results = [r for _, r in indexed_results]
     return results

@@ -187,3 +187,4 @@ This codebase uses a specific error handling pattern based on component role:
 4. **Context lines**: Ripgrep supports context via `-C`; ast-grep does not (context_before/after fields remain None).
 
 5. **Return value consistency**: Runner functions always return `(ok: bool, findings: List[Finding], stdout: str, stderr: str, returncode: int)`. Never break this contract.
+- this project use uv
