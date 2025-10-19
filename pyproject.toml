@@ -1,0 +1,66 @@
+[project]
+name = "bluenode"
+version = "0.1.0"
+description = "Execution-grounded gym for training function-calling models on ast-grep and ripgrep tools, with fixtures and adversarial seeds"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "CodeSearch Gym Authors", email = "devnull@example.com" }]
+keywords = ["function-calling", "tool-use", "code-search", "ast-grep", "ripgrep", "rl", "grpo", "blueprints", "fixtures", "adversarial"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Developers",
+  "Development Status :: 3 - Alpha",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "pytest-mock>=3.10.0",
+  "black>=23.0.0",
+  "ruff>=0.1.0",
+  "mypy>=1.0.0",
+  "jsonschema>=4.0.0",
+]
+vllm = ["vllm>=0.10.0"]
+all = ["codesearch-gym[dev, vllm]"]
+
+[build-system]
+requires = ["setuptools>=65.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+verify-seeds = "codesearch_gym.verify_seeds:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-v"
+markers = [
+  "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+  "slow: marks tests as slow",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "N", "UP"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
